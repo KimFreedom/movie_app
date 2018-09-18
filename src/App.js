@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import InfiniteScroll from 'react-infinite-scroll-component';
 import "./App.css";
 import Movie from "./Movie";
 
@@ -9,6 +10,7 @@ class App extends Component {
   state = {};
 
   componentDidMount() {
+    this.page_no = 1;
     this._getMovies();
   }
 
@@ -36,9 +38,27 @@ class App extends Component {
     });
   };
 
+  _getMoreMovies = async () => {
+    const new_movies = await this._callNextScrollDataApi();
+    this.setState({
+      movies: this.state.movies.concat(new_movies)
+    });
+  };
+
   _callApi = () => {
     return fetch(
       "https://yts.am/api/v2/list_movies.json?sort_by=download_count"
+    )
+      .then(result => result.json())
+      .then(json => json.data.movies)
+      .catch(err => console.log(err));
+  };
+
+  _callNextScrollDataApi = () => {
+    this.page_no++;
+    console.log(this.page_no + ' page fetch start');
+    return fetch(      
+      "https://yts.am/api/v2/list_movies.json?sort_by=download_count&page=" + this.page_no
     )
       .then(potato => potato.json())
       .then(json => json.data.movies)
@@ -48,9 +68,22 @@ class App extends Component {
   render() {
     const { movies } = this.state;
     return (
+      
       <div className={movies ? "App" : "App--loading"}>
-        {movies ? this._renderMovies() : "Loading"}
+        <InfiniteScroll 
+          dataLength={movies ? movies.length : 20}
+          next={this._getMoreMovies}
+          hasMore={true}
+          loader={<h4>Loading...</h4>}
+          endMessage={
+            <p style={{textAlign: 'center'}}>
+              <b>Yay! You have seen it all</b>
+            </p>
+          }>
+          {movies ? this._renderMovies() : "Loading"}
+        </InfiniteScroll>
       </div>
+
     );
   }
 }
